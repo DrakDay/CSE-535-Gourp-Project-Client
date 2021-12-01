@@ -1,7 +1,17 @@
 package com.example.cse535groupprojectclient;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
+import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -14,8 +24,12 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public class MainActivity extends AppCompatActivity {
+
+    private int battery_level;
 
     //setting up client properties
     public static final int SERVER_PORT = 8888;
@@ -23,10 +37,26 @@ public class MainActivity extends AppCompatActivity {
     private ClientThread clientThread;
     private Thread thread;
 
+    //client up
+    public static String CLIENT_IP = "";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //get permission
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_NETWORK_STATE}, 1);
+        }
+
+        try{
+            CLIENT_IP = getLocalIPaddress();
+        } catch (UnknownHostException e){
+            e.printStackTrace();
+        }
 
         //starting new client thread
         clientThread = new ClientThread();
@@ -35,6 +65,35 @@ public class MainActivity extends AppCompatActivity {
 
         //testing sending msg to server
         //test();
+
+        //listening batter level check
+        this.registerReceiver(this.batterylevelReciver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+
+        //get current location
+        location_finder loc_finder= new location_finder(this);
+        Log.i("TAG", "longitude: " + loc_finder.get_longitude());
+        Log.i("TAG", "latitude: " + loc_finder.get_latitude());
+        Log.i("TAG", "country: " + loc_finder.get_country());
+        Log.i("TAG", "address: " + loc_finder.get_address());
+    }
+
+    // battery level check
+    private BroadcastReceiver batterylevelReciver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            battery_level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
+            Log.i("TAG", "battery level: " + Integer.toString(battery_level));
+        }
+    };
+
+    //get current location
+
+    private String getLocalIPaddress() throws UnknownHostException{
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        assert wifiManager != null;
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        int ipInt = wifiInfo.getIpAddress();
+        return InetAddress.getByAddress(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(ipInt).array()).getHostAddress();
     }
 
     class ClientThread implements Runnable {
@@ -90,9 +149,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void test(){
         int i = 0;
-        while(i<200){
-            clientThread.sendMessage(Integer.toString(i));
-            Log.i("TAG", "send :" + Integer.toString(i));
+        while(i<100){
+            clientThread.sendMessage(CLIENT_IP + ": " + Integer.toString(i));
+            Log.i("TAG", "send :" + CLIENT_IP + ": " + Integer.toString(i));
             i++;
         }
     }
@@ -105,4 +164,6 @@ public class MainActivity extends AppCompatActivity {
             clientThread = null;
         }
     }
+
+
 }
