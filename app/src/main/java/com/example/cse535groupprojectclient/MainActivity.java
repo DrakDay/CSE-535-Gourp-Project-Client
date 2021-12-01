@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_NETWORK_STATE}, 1);
         }
 
+        //get ip
         try{
             CLIENT_IP = getLocalIPaddress();
         } catch (UnknownHostException e){
@@ -70,11 +71,11 @@ public class MainActivity extends AppCompatActivity {
         this.registerReceiver(this.batterylevelReciver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
 
         //get current location
-        location_finder loc_finder= new location_finder(this);
+        location_finder loc_finder = new location_finder(this);
         Log.i("TAG", "longitude: " + loc_finder.get_longitude());
         Log.i("TAG", "latitude: " + loc_finder.get_latitude());
         Log.i("TAG", "country: " + loc_finder.get_country());
-        Log.i("TAG", "address: " + loc_finder.get_address());
+        //Log.i("TAG", "address: " + loc_finder.get_address());
     }
 
     // battery level check
@@ -165,5 +166,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void confirm (){
+
+    }
 
 }

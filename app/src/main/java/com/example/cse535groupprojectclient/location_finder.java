@@ -20,9 +20,9 @@ import java.util.Locale;
 public class location_finder extends Activity {
     private Context mContext;
     private LocationManager locationManager;
-    private Location gps_loc;
-    private double longitude;
-    private double latitude;
+    private Location gps_loc,network_loc;
+    private double longitude = 0.0;
+    private double latitude = 0.0;
     String userCountry, userAddress;
 
     public location_finder(Context mContext) {
@@ -53,8 +53,20 @@ public class location_finder extends Activity {
     private void get_current_location() {
 
         gps_loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        latitude = gps_loc.getLatitude();
-        longitude = gps_loc.getLongitude();
+
+        if(gps_loc != null){
+            latitude = gps_loc.getLatitude();
+            longitude = gps_loc.getLongitude();
+
+        }else{
+            network_loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            if(network_loc == null){
+
+            }else{
+                latitude = network_loc.getLatitude();
+                longitude = network_loc.getLongitude();
+            }
+        }
 
         try {
             Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
