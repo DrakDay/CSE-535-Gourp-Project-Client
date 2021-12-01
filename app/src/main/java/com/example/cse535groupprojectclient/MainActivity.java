@@ -1,11 +1,13 @@
 package com.example.cse535groupprojectclient;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -30,7 +32,7 @@ import java.nio.ByteOrder;
 public class MainActivity extends AppCompatActivity {
 
     private int battery_level;
-
+    private boolean participate;
     //setting up client properties
     public static final int SERVER_PORT = 8888;
     public static final String SERVER_IP = "192.168.1.6";
@@ -76,6 +78,9 @@ public class MainActivity extends AppCompatActivity {
         Log.i("TAG", "latitude: " + loc_finder.get_latitude());
         Log.i("TAG", "country: " + loc_finder.get_country());
         //Log.i("TAG", "address: " + loc_finder.get_address());
+
+        confirm();
+
     }
 
     // battery level check
@@ -167,7 +172,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void confirm (){
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 
+        builder.setTitle("Enter Network");
+        builder.setMessage("do you want participate");
+
+        builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                participate = true;
+                dialog.dismiss();
+            }
+        });
+
+        builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                participate = false;
+                dialog.dismiss();
+            }
+        });
+
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
     }
 
 }
