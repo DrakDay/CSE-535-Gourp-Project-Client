@@ -31,6 +31,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -38,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     location_finder loc_finder;
     //setting up client properties
     public static final int SERVER_PORT = 8888;
-    public static final String SERVER_IP = "192.168.1.6";
+    public static final String SERVER_IP = "192.168.0.47";
     private ClientThread clientThread;
     private Thread thread;
     private Battery_thread battery_thread;
@@ -191,6 +192,76 @@ public class MainActivity extends AppCompatActivity {
             });
 
         }
+        else if (msg.startsWith("IP")){
+            String[] splitMessages = msg.split(",");
+            if (splitMessages[0].split(":")[1].equals(CLIENT_IP)) {
+                Log.i("SPLIT", Arrays.toString(splitMessages));
+                String splitIndex = splitMessages[3];
+
+                int m1RowSize = 0;
+                int m1ColumnSize = 0;
+                int m2RowSize = 0;
+                int m2ColumnSize = 0;
+                String[] m1String;
+                String[] m2String;
+
+                if(splitMessages[1].contains(".")) {
+                    m1String = splitMessages[1].split("\\.");
+                }
+                else {
+                    m1String = new String[1];
+                    m1String[0] = splitMessages[1];
+                }
+                Log.i("SPLIT", Arrays.toString(m1String));
+                if(splitMessages[2].contains(".")) {
+                    m2String = splitMessages[2].split("\\.");
+                }
+                else {
+                    m2String = new String[1];
+                    m2String[0] = splitMessages[2];
+                }
+                Log.i("SPLIT", Arrays.toString(m2String));
+                m1RowSize = m1String.length;
+                m1ColumnSize = m1String[0].split("@").length;
+
+                m2RowSize = m2String.length;
+                m2ColumnSize = m2String[0].split("@").length;
+
+                int[][] matrix1 = new int[m1RowSize][m1ColumnSize];
+                int[][] matrix2 = new int[m2RowSize][m2ColumnSize];
+
+                for (int i = 0; i < m1RowSize; i++) {
+                    for (int j = 0; j < m1ColumnSize; j++) {
+                        matrix1[i][j] = Integer.valueOf(m1String[i].split("@")[j]);
+                    }
+                }
+
+                for (int i = 0; i < m2RowSize; i++) {
+                    for (int j = 0; j < m2ColumnSize; j++) {
+                        matrix2[i][j] = Integer.valueOf(m2String[i].split("@")[j]);
+                    }
+                }
+
+                int[][] multResult = multiplyMatrices(matrix1, matrix2);
+
+                String message = "RESULT, IP:" + CLIENT_IP + ",";
+
+                // Copy first matrix
+                for(int rowIndex = 0; rowIndex < multResult.length; rowIndex++) {
+                    for(int columnIndex = 0; columnIndex < multResult[0].length; columnIndex++) {
+                        message += Integer.toString(multResult[rowIndex][columnIndex]);
+                        if (columnIndex != multResult[0].length-1)
+                            message += "@";
+                    }
+                    if (rowIndex != multResult.length-1)
+                        message += ".";
+                }
+                message += splitIndex;
+
+                clientThread.sendMessage(message);
+                Log.i("TEST", message);
+            }
+        }
     }
 
     //ask user want participate using alter dialog
@@ -198,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 
         builder.setTitle("Enter Network");
-        builder.setMessage("do you want participate");
+        builder.setMessage("Do you want participate?");
 
         builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
             @Override
@@ -251,6 +322,24 @@ public class MainActivity extends AppCompatActivity {
         public void stop(){
             run = false;
         }
+    }
+
+    // Method for multiplying two matrices together
+    public static int[][] multiplyMatrices(int[][] matrix1, int[][] matrix2) {
+        int[][] result = new int[matrix1.length][matrix2[0].length];
+        if (matrix1[0].length != matrix2.length)
+            System.out.println("ERROR: Dimensions of matrices do not match!");
+        else {
+            for (int i = 0; i < matrix1.length; i++) {
+                for (int j = 0; j < matrix2[0].length; j++) {
+                    result[i][j] = 0;
+                    for (int k = 0; k < matrix1[0].length; k++) {
+                        result[i][j] += matrix1[i][k] * matrix2[k][j];
+                    }
+                }
+            }
+        }
+        return result;
     }
 }
 
