@@ -15,7 +15,10 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -33,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
 
     private int battery_level;
     private boolean participate;
+
     //setting up client properties
     public static final int SERVER_PORT = 8888;
     public static final String SERVER_IP = "192.168.1.6";
@@ -41,6 +45,11 @@ public class MainActivity extends AppCompatActivity {
 
     //client up
     public static String CLIENT_IP = "";
+
+    //ui element
+    Button connect_to_server;
+    Button disconnect_to_server;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,6 +63,9 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_NETWORK_STATE}, 1);
         }
 
+        connect_to_server = findViewById(R.id.connect);
+        disconnect_to_server = findViewById(R.id.disconnect);
+
         //get ip
         try{
             CLIENT_IP = getLocalIPaddress();
@@ -61,13 +73,8 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        //starting new client thread
-        clientThread = new ClientThread();
-        thread = new Thread(clientThread);
-        thread.start();
 
-        //testing sending msg to server
-        //test();
+
 
         //listening batter level check
         this.registerReceiver(this.batterylevelReciver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -79,7 +86,24 @@ public class MainActivity extends AppCompatActivity {
         Log.i("TAG", "country: " + loc_finder.get_country());
         //Log.i("TAG", "address: " + loc_finder.get_address());
 
-        confirm();
+        connect_to_server.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clientThread = new ClientThread();
+                thread = new Thread(clientThread);
+                thread.start();
+                SystemClock.sleep(500);
+                clientThread.sendMessage("IP:"+CLIENT_IP);
+            }
+        });
+
+        disconnect_to_server.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clientThread.sendMessage("Disconnect:"+CLIENT_IP);
+                thread.interrupt();
+            }
+        });
 
     }
 
@@ -113,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
 
                 socket = new Socket(SERVER_IP, SERVER_PORT);
                 Log.i("TAG", "connect to server :");
+
                 while (!Thread.currentThread().isInterrupted()) {
 
                     this.input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -124,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     }
                     Log.i("TAG", "Server :" + message);
+                    request_handler(message);
                 }
 
             } catch (IOException e1) {
@@ -153,23 +179,18 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void test(){
-        int i = 0;
-        while(i<100){
-            clientThread.sendMessage(CLIENT_IP + ": " + Integer.toString(i));
-            Log.i("TAG", "send :" + CLIENT_IP + ": " + Integer.toString(i));
-            i++;
+    public void request_handler(String msg){
+        if(msg.equals("participate")){
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    confirm();
+                }
+            });
+
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (null != clientThread) {
-            clientThread.sendMessage("Disconnect");
-            clientThread = null;
-        }
-    }
 
     public void confirm (){
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
@@ -181,6 +202,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 participate = true;
+                clientThread.sendMessage("YES:"+CLIENT_IP+",Battery:"+battery_level);
                 dialog.dismiss();
             }
         });
@@ -189,6 +211,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 participate = false;
+                clientThread.sendMessage("NO:"+CLIENT_IP);
                 dialog.dismiss();
             }
         });
