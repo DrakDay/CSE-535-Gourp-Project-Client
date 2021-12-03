@@ -35,15 +35,16 @@ import java.nio.ByteOrder;
 public class MainActivity extends AppCompatActivity {
 
     private int battery_level;
-    private boolean participate;
-
+    location_finder loc_finder;
     //setting up client properties
     public static final int SERVER_PORT = 8888;
     public static final String SERVER_IP = "192.168.1.6";
     private ClientThread clientThread;
     private Thread thread;
+    private Battery_thread battery_thread;
+    private Thread bthread;
 
-    //client up
+    //client ip
     public static String CLIENT_IP = "";
 
     //ui element
@@ -74,13 +75,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-
-
         //listening batter level check
         this.registerReceiver(this.batterylevelReciver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
 
         //get current location
-        location_finder loc_finder = new location_finder(this);
+        loc_finder = new location_finder(this);
         Log.i("TAG", "longitude: " + loc_finder.get_longitude());
         Log.i("TAG", "latitude: " + loc_finder.get_latitude());
         Log.i("TAG", "country: " + loc_finder.get_country());
@@ -94,6 +93,8 @@ public class MainActivity extends AppCompatActivity {
                 thread.start();
                 SystemClock.sleep(500);
                 clientThread.sendMessage("IP:"+CLIENT_IP);
+                SystemClock.sleep(500);
+                clientThread.sendMessage("Lat:" + loc_finder.get_latitude() + ",Lon:"+loc_finder.get_longitude()+",IP:"+CLIENT_IP);
             }
         });
 
@@ -102,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 clientThread.sendMessage("Disconnect:"+CLIENT_IP);
                 thread.interrupt();
+                battery_thread.stop();
             }
         });
 
@@ -144,7 +146,6 @@ public class MainActivity extends AppCompatActivity {
                     String message = input.readLine();
                     if (null == message || "Disconnect".contentEquals(message)) {
                         Thread.interrupted();
-                        message = "Server Disconnected.";
                         Log.i("TAG", "Client : (most time is server Disconnected )" + message);
                         break;
                     }
@@ -179,6 +180,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    //handling msg from server
     public void request_handler(String msg){
         if(msg.equals("participate")){
             runOnUiThread(new Runnable() {
@@ -191,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    //ask user want participate using alter dialog
     public void confirm (){
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 
@@ -201,8 +203,13 @@ public class MainActivity extends AppCompatActivity {
         builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                participate = true;
+                //send yes msg to server
                 clientThread.sendMessage("YES:"+CLIENT_IP+",Battery:"+battery_level);
+
+                //start monitoring client battery level
+                battery_thread = new Battery_thread();
+                bthread = new Thread(battery_thread);
+                bthread.start();
                 dialog.dismiss();
             }
         });
@@ -210,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
         builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                participate = false;
+                //send no msg to server
                 clientThread.sendMessage("NO:"+CLIENT_IP);
                 dialog.dismiss();
             }
@@ -220,4 +227,31 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
+
+    //get current battery level
+    public void monitoring(){
+
+        this.unregisterReceiver(this.batterylevelReciver);
+        this.registerReceiver(this.batterylevelReciver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        loc_finder.update_locations();
+        clientThread.sendMessage("Battery:"+battery_level+ ",Lat:"+loc_finder.get_latitude()+",Lon:"+loc_finder.get_longitude()+",IP:"+CLIENT_IP);
+        Log.i("TAG","Battery:"+battery_level+ ",Lat:"+loc_finder.get_latitude()+",Lon:"+loc_finder.get_longitude()+",IP:"+CLIENT_IP);
+    }
+
+    //battery thread class
+    class Battery_thread implements Runnable{
+        boolean run = true;
+        @Override
+        public void run(){
+            while(run) {
+                monitoring();
+                SystemClock.sleep(5000);
+            }
+        }
+        public void stop(){
+            run = false;
+        }
+    }
 }
+
+

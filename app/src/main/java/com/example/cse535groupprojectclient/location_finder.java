@@ -3,16 +3,14 @@ package com.example.cse535groupprojectclient;
 
 
 import android.annotation.SuppressLint;
-
 import android.app.Activity;
 import android.content.Context;
-
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
-
-import androidx.core.app.ActivityCompat;
+import android.os.Bundle;
 
 import java.util.List;
 import java.util.Locale;
@@ -31,6 +29,18 @@ public class location_finder extends Activity {
         get_current_location();
     }
 
+
+    @SuppressLint("MissingPermission")
+    public void update_locations(){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                locationManager.requestLocationUpdates(locationManager.GPS_PROVIDER,0,0,locationListenerGps);
+            }
+        });
+
+        get_current_location();
+    }
 
 
     public Double get_longitude() {
@@ -83,4 +93,15 @@ public class location_finder extends Activity {
             e.printStackTrace();
         }
     }
+
+     public LocationListener locationListenerGps = new LocationListener() {
+        public void onLocationChanged(Location location) {
+
+
+        }
+        public void onProviderDisabled(String provider) {}
+        public void onProviderEnabled(String provider) {}
+        public void onStatusChanged(String provider, int status, Bundle extras) {}
+    };
+
 }
