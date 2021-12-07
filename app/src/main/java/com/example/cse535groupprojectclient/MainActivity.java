@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     location_finder loc_finder;
     //setting up client properties
     public static final int SERVER_PORT = 8888;
-    public static final String SERVER_IP = "192.168.0.47";
+    public static final String SERVER_IP = "192.168.1.6";
     private ClientThread clientThread;
     private Thread thread;
     private Battery_thread battery_thread;
@@ -104,7 +104,10 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 clientThread.sendMessage("Disconnect:"+CLIENT_IP);
                 thread.interrupt();
-                battery_thread.stop();
+                if (battery_thread != null){
+                    battery_thread.stop();
+                }
+
             }
         });
 
@@ -115,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             battery_level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
-            Log.i("TAG", "battery level: " + Integer.toString(battery_level));
+            //Log.i("TAG", "battery level: " + Integer.toString(battery_level));
         }
     };
 
