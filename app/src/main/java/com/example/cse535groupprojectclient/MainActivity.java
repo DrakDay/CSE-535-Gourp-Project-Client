@@ -15,6 +15,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
@@ -39,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     location_finder loc_finder;
     //setting up client properties
     public static final int SERVER_PORT = 8888;
-    public static final String SERVER_IP = "192.168.1.6";
+    public static final String SERVER_IP = "192.168.0.47";
     private ClientThread clientThread;
     private Thread thread;
     private Battery_thread battery_thread;
@@ -201,68 +202,90 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("SPLIT", Arrays.toString(splitMessages));
                 String splitIndex = splitMessages[3];
 
-                int m1RowSize = 0;
-                int m1ColumnSize = 0;
-                int m2RowSize = 0;
-                int m2ColumnSize = 0;
-                String[] m1String;
-                String[] m2String;
+                // Code for failure, set to true for failure on second client
+                boolean fail = false;
+                if (fail == true) {
 
-                if(splitMessages[1].contains(".")) {
-                    m1String = splitMessages[1].split("\\.");
+                    if(splitIndex.equals("1")) {
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                SystemClock.sleep(5000);
+                                String message = "FAILURE";
+                                Log.i("TEST", message);
+                                clientThread.sendMessage(message);
+                            }
+                        }).run();
+                    }
                 }
                 else {
-                    m1String = new String[1];
-                    m1String[0] = splitMessages[1];
-                }
-                Log.i("SPLIT", Arrays.toString(m1String));
-                if(splitMessages[2].contains(".")) {
-                    m2String = splitMessages[2].split("\\.");
-                }
-                else {
-                    m2String = new String[1];
-                    m2String[0] = splitMessages[2];
-                }
-                Log.i("SPLIT", Arrays.toString(m2String));
-                m1RowSize = m1String.length;
-                m1ColumnSize = m1String[0].split("@").length;
+                    if(splitIndex.equals("2"))
+                        splitIndex = "1";
 
-                m2RowSize = m2String.length;
-                m2ColumnSize = m2String[0].split("@").length;
+                    int m1RowSize = 0;
+                    int m1ColumnSize = 0;
+                    int m2RowSize = 0;
+                    int m2ColumnSize = 0;
+                    String[] m1String;
+                    String[] m2String;
 
-                int[][] matrix1 = new int[m1RowSize][m1ColumnSize];
-                int[][] matrix2 = new int[m2RowSize][m2ColumnSize];
-
-                for (int i = 0; i < m1RowSize; i++) {
-                    for (int j = 0; j < m1ColumnSize; j++) {
-                        matrix1[i][j] = Integer.valueOf(m1String[i].split("@")[j]);
+                    if(splitMessages[1].contains(".")) {
+                        m1String = splitMessages[1].split("\\.");
                     }
-                }
-
-                for (int i = 0; i < m2RowSize; i++) {
-                    for (int j = 0; j < m2ColumnSize; j++) {
-                        matrix2[i][j] = Integer.valueOf(m2String[i].split("@")[j]);
+                    else {
+                        m1String = new String[1];
+                        m1String[0] = splitMessages[1];
                     }
-                }
+                    Log.i("SPLIT", Arrays.toString(m1String));
 
-                int[][] multResult = multiplyMatrices(matrix1, matrix2);
-
-                String message = "RESULT, IP:" + CLIENT_IP + ",";
-
-                // Copy first matrix
-                for(int rowIndex = 0; rowIndex < multResult.length; rowIndex++) {
-                    for(int columnIndex = 0; columnIndex < multResult[0].length; columnIndex++) {
-                        message += Integer.toString(multResult[rowIndex][columnIndex]);
-                        if (columnIndex != multResult[0].length-1)
-                            message += "@";
+                    if(splitMessages[2].contains(".")) {
+                        m2String = splitMessages[2].split("\\.");
                     }
-                    if (rowIndex != multResult.length-1)
-                        message += ".";
-                }
-                message += splitIndex;
+                    else {
+                        m2String = new String[1];
+                        m2String[0] = splitMessages[2];
+                    }
+                    Log.i("SPLIT", Arrays.toString(m2String));
+                    m1RowSize = m1String.length;
+                    m1ColumnSize = m1String[0].split("@").length;
 
-                clientThread.sendMessage(message);
-                Log.i("TEST", message);
+                    m2RowSize = m2String.length;
+                    m2ColumnSize = m2String[0].split("@").length;
+
+                    int[][] matrix1 = new int[m1RowSize][m1ColumnSize];
+                    int[][] matrix2 = new int[m2RowSize][m2ColumnSize];
+
+                    for (int i = 0; i < m1RowSize; i++) {
+                        for (int j = 0; j < m1ColumnSize; j++) {
+                            matrix1[i][j] = Integer.valueOf(m1String[i].split("@")[j]);
+                        }
+                    }
+
+                    for (int i = 0; i < m2RowSize; i++) {
+                        for (int j = 0; j < m2ColumnSize; j++) {
+                            matrix2[i][j] = Integer.valueOf(m2String[i].split("@")[j]);
+                        }
+                    }
+
+                    int[][] multResult = multiplyMatrices(matrix1, matrix2);
+
+                    String message = "RESULT, IP:" + CLIENT_IP + ",";
+
+                    // Copy first matrix
+                    for(int rowIndex = 0; rowIndex < multResult.length; rowIndex++) {
+                        for(int columnIndex = 0; columnIndex < multResult[0].length; columnIndex++) {
+                            message += Integer.toString(multResult[rowIndex][columnIndex]);
+                            if (columnIndex != multResult[0].length-1)
+                                message += "@";
+                        }
+                        if (rowIndex != multResult.length-1)
+                            message += ".";
+                    }
+                    message += "," + splitIndex;
+
+                    clientThread.sendMessage(message);
+                    Log.i("TEST", message);
+                }
             }
         }
     }
